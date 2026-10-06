@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><title>LyricFloat</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <header><span class="mark">♫</span><strong>lyricfloat</strong><span class="tag">COMPANION</span></header>
+  <h1>A little room to sing.</h1>
+  <p>Connect YouTube’s playback to your floating lyrics window.</p>
+  <label for="token">PAIRING CODE</label>
+  <input id="token" type="text" autocomplete="off" spellcheck="false" placeholder="Paste from LyricFloat → Connect browser">
+  <button id="save">Save connection</button>
+  <div id="status" role="status">Open LyricFloat on your Mac to begin.</div>
+  <div class="tabs"><button id="follow" class="secondary">Follow this YouTube tab</button><button id="auto" class="secondary">Auto-select tab</button></div>
+  <small id="mode">Auto-select follows the first playing YouTube tab.</small>
+  <script src="popup.js"></script>
+</body>
+</html>

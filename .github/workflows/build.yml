@@ -1,0 +1,93 @@
+name: Build LyricFloat
+
+"on":
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lyricfloat-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Test and package macOS universal app
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+    env:
+      CLANG_MODULE_CACHE_PATH: ${{ github.workspace }}/.build/module-cache
+      SWIFTPM_MODULECACHE_OVERRIDE: ${{ github.workspace }}/.build/module-cache
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Test lyrics, playback, window placement, and local bridge
+        run: swift test --disable-sandbox --scratch-path .build
+
+      - name: Test browser companion
+        run: node --test Tests/BrowserExtensionTests/*.test.cjs
+
+      - name: Build and package app and extension
+        run: ./scripts/package-release.sh --universal
+
+      - name: Verify universal binary and signature
+        run: |
+          lipo dist/LyricFloat.app/Contents/MacOS/LyricFloat -verify_arch arm64 x86_64
+          codesign --verify --deep --strict dist/LyricFloat.app
+          plutil -lint dist/LyricFloat.app/Contents/Info.plist
+
+      - name: Upload macOS app
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/packages/LyricFloat-macos-universal.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload browser extension
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/packages/LyricFloat-browser-extension.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload checksums
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          path: dist/packages/SHA256SUMS
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Write download instructions
+        if: github.event_name != 'pull_request'
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
+          ### LyricFloat downloads
+          Download the files from **Artifacts** below this workflow run:
+          - **LyricFloat-macos-universal.zip** — macOS app for Apple Silicon and Intel.
+          - **LyricFloat-browser-extension.zip** — unpack into a permanent folder, then load it in your browser.
+          - **SHA256SUMS** — archive checksums.
+
+          The app is ad-hoc signed, not Apple-notarized. No custom GitHub secrets are needed.
+          SUMMARY

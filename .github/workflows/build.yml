@@ -18,6 +18,8 @@ jobs:
   build:
     name: Test and package macOS universal app
     runs-on: macos-15
+    permissions:
+      contents: write
     timeout-minutes: 30
     defaults:
       run:
@@ -79,12 +81,33 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+      - name: Publish GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          VERSION=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' dist/LyricFloat.app/Contents/Info.plist)
+          TAG="v$VERSION-build.$GITHUB_RUN_NUMBER"
+          cat > /tmp/lyricfloat-release.md <<'NOTES'
+          Download **LyricFloat-macos-universal.zip** for macOS 13+ (Apple Silicon and Intel).
+          Download **LyricFloat-browser-extension.zip**, extract it into a permanent folder, then use your browser's **Load unpacked** option.
+          Follow the README to pair the browser with the app.
+
+          The app is ad-hoc signed and has not been notarized by Apple.
+          NOTES
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" dist/packages/* --clobber
+          else
+            gh release create "$TAG" dist/packages/* --target "$GITHUB_SHA" --title "LyricFloat $VERSION · Build $GITHUB_RUN_NUMBER" --notes-file /tmp/lyricfloat-release.md --latest
+          fi
+
       - name: Write download instructions
         if: github.event_name != 'pull_request'
         run: |
           cat >> "$GITHUB_STEP_SUMMARY" <<'SUMMARY'
           ### LyricFloat downloads
-          Download the files from **Artifacts** below this workflow run:
+          Download the latest public build from **Releases** on the repository page. Copies are also available in **Artifacts** below:
           - **LyricFloat-macos-universal.zip** — macOS app for Apple Silicon and Intel.
           - **LyricFloat-browser-extension.zip** — unpack into a permanent folder, then load it in your browser.
           - **SHA256SUMS** — archive checksums.

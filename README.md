@@ -26,7 +26,11 @@ Lirik disinkronkan per baris, bukan per kata. Video live, cover, remix, dan vers
 
 Safari dan Spotify versi web belum didukung. Tidak perlu akun LyricFloat atau API key LRCLIB.
 
-## Download dari GitHub Actions
+## Download
+
+Buka **[Releases → Latest](https://github.com/ekhacahya/LyricFloat/releases/latest)** atau bagian **Releases** di halaman depan repository. Download ZIP aplikasi dan ekstensi dari **Assets**. Unduhan release publik tersedia tanpa login dan tidak kedaluwarsa setelah 30 hari.
+
+### Download cadangan dari GitHub Actions
 
 Setelah perubahan di-merge atau di-push ke branch `main`:
 
@@ -40,7 +44,7 @@ Setelah perubahan di-merge atau di-push ke branch `main`:
    | `LyricFloat-browser-extension.zip` | Ekstensi YouTube; `manifest.json` berada di root ZIP |
    | `SHA256SUMS` | Checksum SHA-256 kedua ZIP |
 
-Artifact tersedia selama **30 hari** dan download melalui Actions membutuhkan login GitHub serta akses ke repository. Untuk unduhan publik tanpa login yang permanen, gunakan GitHub Releases; workflow ini belum menerbitkan Releases.
+Artifact tersedia selama **30 hari** dan download melalui Actions membutuhkan login GitHub serta akses ke repository. Workflow juga otomatis menerbitkan paket yang sama ke GitHub Releases setelah build main berhasil.
 
 ## Instalasi aplikasi
 
@@ -147,9 +151,9 @@ Workflow: [`.github/workflows/build.yml`](.github/workflows/build.yml).
 
 | Pemicu | Perilaku |
 | --- | --- |
-| Merge atau push ke `main` | Tes, build universal `.app`, package ekstensi, verifikasi, upload artifact |
+| Merge atau push ke `main` | Tes, build universal `.app`, package ekstensi, verifikasi, upload artifact, terbitkan GitHub Release |
 | Pull request menuju `main` | Tes dan build untuk validasi; artifact tidak di-upload |
-| Actions → Run workflow | Menjalankan build manual pada branch yang dipilih |
+| Actions → Run workflow | Menjalankan build manual; publish release hanya untuk branch main |
 
 Workflow menggunakan runner `macos-15` dan Node.js 24. Tahapannya:
 
@@ -159,12 +163,13 @@ Workflow menggunakan runner `macos-15` dan Node.js 24. Tahapannya:
 4. Buat bundle `.app`, tanda tangani ad-hoc, dan kemas ZIP aplikasi/ekstensi.
 5. Periksa arsitektur universal, signature, plist, isi archive, izin executable, dan resource ekstensi.
 6. Upload dua ZIP serta checksum dengan masa simpan 30 hari.
+7. Untuk main, terbitkan release terbaru dengan tag unik `v<VERSION>-build.<RUN_NUMBER>` dan tiga file unduhan. Menjalankan ulang run yang sama memperbarui aset pada release yang sama.
 
-Tidak perlu menambahkan GitHub Secrets untuk pipeline ini. GitHub menyediakan kredensial otomatis untuk menjalankan Actions; kredensial tersebut tidak dibundel ke aplikasi. Workflow hanya meminta permission `contents: read`.
+Tidak perlu menambahkan GitHub Secrets untuk pipeline ini. GitHub menyediakan kredensial otomatis untuk menjalankan Actions; kredensial tersebut tidak dibundel ke aplikasi. Job build/publish meminta permission `contents: write` untuk membuat tag dan release. Pull request tidak menjalankan langkah publish.
 
 Untuk mengaktifkan CI, masukkan project ini ke repository GitHub dengan branch `main`, pastikan folder `.github` ikut di-commit, dan aktifkan GitHub Actions pada repository. Sertakan `Package.swift`, `Sources`, `Tests`, `Assets`, `BrowserExtension`, `scripts`, README, dan `.gitignore`; jangan commit `.build*` atau `dist`.
 
-Workflow ini menghasilkan paket download, bukan deployment ke App Store, Chrome Web Store, atau GitHub Releases. Untuk rilis aplikasi yang dinotariskan perlu konfigurasi signing tambahan. [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [artifact uploads](https://github.com/actions/upload-artifact).
+Workflow ini menerbitkan GitHub Releases; distribusi ke App Store atau Chrome Web Store belum dikonfigurasi. Untuk rilis aplikasi yang dinotariskan perlu konfigurasi signing tambahan. [GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [artifact uploads](https://github.com/actions/upload-artifact).
 
 ## Tes
 
